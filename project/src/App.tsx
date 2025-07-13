@@ -47,7 +47,7 @@ function App() {
   const [aiRecommendations, setAIRecommendations] = useState<AIRecommendation[]>([]);
   const [loadingRecommendations, setLoadingRecommendations] = useState(false);
 
-  // Mock gym data
+  // Set gyms only once on mount
   useEffect(() => {
     const mockGyms: Gym[] = [
       {
@@ -135,29 +135,30 @@ function App() {
         },
       },
     ];
-    
-    // Calculate distances if user location is available
-    const gymsWithDistance = mockGyms.map(gym => ({
+    setGyms(mockGyms);
+  }, []);
+
+  // Update filteredGyms when gyms or location changes (fixes infinite loop)
+  useEffect(() => {
+    const gymsWithDistance = gyms.map(gym => ({
       ...gym,
       distance: location
         ? getDistanceFromLocation(gym.latitude, gym.longitude) ?? undefined
         : undefined
     }));
-    
-    setGyms(mockGyms);
     setFilteredGyms(gymsWithDistance);
-  }, [location, getDistanceFromLocation]);
+  }, [gyms, location]);
 
   // Load AI recommendations when location is available
   useEffect(() => {
     if (location && user.fitnessGoals.length > 0) {
       loadAIRecommendations();
     }
-  }, [location, user.fitnessGoals]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location, user.fitnessGoals, gyms]);
 
   const loadAIRecommendations = async () => {
     if (!location) return;
-    
     setLoadingRecommendations(true);
     try {
       // Mock AI recommendations
