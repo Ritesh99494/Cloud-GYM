@@ -139,7 +139,9 @@ function App() {
     // Calculate distances if user location is available
     const gymsWithDistance = mockGyms.map(gym => ({
       ...gym,
-      distance: location ? getDistanceFromLocation(gym.latitude, gym.longitude) : undefined
+      distance: location
+        ? getDistanceFromLocation(gym.latitude, gym.longitude) ?? undefined
+        : undefined
     }));
     
     setGyms(mockGyms);

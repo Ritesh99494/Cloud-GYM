@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { MapPin, Filter, Search, Navigation } from 'lucide-react';
+import { Filter, Search, Navigation, Map } from 'lucide-react';
 import { Gym, Location, MapFilters } from '../../types';
+import { GoogleMap } from '../map/GoggleMap';
 
 interface GymMapProps {
   gyms: Gym[];
@@ -128,55 +129,14 @@ export const GymMap: React.FC<GymMapProps> = ({
         )}
       </div>
 
-      {/* Map Container */}
-      <div className="relative h-96 bg-gray-100">
-        {/* Placeholder Map */}
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="text-center">
-            <MapPin className="h-12 w-12 text-gray-400 mx-auto mb-2" />
-            <p className="text-gray-500">Interactive map would be displayed here</p>
-            <p className="text-sm text-gray-400">
-              Integration with Google Maps, Mapbox, or similar service
-            </p>
-          </div>
-        </div>
-
-        {/* Map Overlay - Gym List */}
-        <div className="absolute top-4 left-4 right-4 max-h-80 overflow-y-auto">
-          <div className="space-y-2">
-            {filteredGyms.slice(0, 5).map((gym) => (
-              <div
-                key={gym.id}
-                onClick={() => onGymSelect?.(gym)}
-                className={`bg-white/95 backdrop-blur-sm p-3 rounded-lg shadow-md cursor-pointer transition-all hover:bg-white ${
-                  selectedGym?.id === gym.id ? 'ring-2 ring-blue-500' : ''
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="font-medium text-gray-900">{gym.name}</h4>
-                    <p className="text-sm text-gray-600">{gym.distance?.toFixed(1)} km away</p>
-                  </div>
-                  <div className="text-right">
-                    <div className="flex items-center space-x-1">
-                      <span className="text-sm font-medium">{gym.rating}</span>
-                      <span className="text-yellow-500">★</span>
-                    </div>
-                    <p className="text-sm text-gray-600">{gym.priceRange}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* User Location Indicator */}
-        {userLocation && (
-          <div className="absolute bottom-4 right-4 bg-blue-600 text-white p-2 rounded-full shadow-lg">
-            <Navigation className="h-4 w-4" />
-          </div>
-        )}
-      </div>
+      {/* Google Map Container */}
+      <GoogleMap
+        gyms={filteredGyms}
+        userLocation={userLocation}
+        selectedGym={selectedGym}
+        onGymSelect={onGymSelect}
+        className="h-96"
+      />
 
       {/* Map Footer */}
       <div className="p-4 border-t border-gray-200 bg-gray-50">
@@ -184,7 +144,7 @@ export const GymMap: React.FC<GymMapProps> = ({
           <span>Showing {filteredGyms.length} gyms</span>
           {userLocation && (
             <span>
-              Location: {userLocation.latitude.toFixed(4)}, {userLocation.longitude.toFixed(4)}
+              Your location: {userLocation.latitude.toFixed(4)}, {userLocation.longitude.toFixed(4)}
             </span>
           )}
         </div>

@@ -5,13 +5,17 @@ interface GeolocationState {
   location: Location | null;
   loading: boolean;
   error: string | null;
+  accuracy: number | null;
+  timestamp: number | null;
 }
 
-export const useGeolocation = (enableHighAccuracy = true) => {
+export const useGeolocation = (enableHighAccuracy = true, watchPosition = true) => {
   const [state, setState] = useState<GeolocationState>({
     location: null,
     loading: true,
     error: null,
+    accuracy: null,
+    timestamp: null,
   });
 
   useEffect(() => {
@@ -20,14 +24,16 @@ export const useGeolocation = (enableHighAccuracy = true) => {
         location: null,
         loading: false,
         error: 'Geolocation is not supported by this browser.',
+        accuracy: null,
+        timestamp: null,
       });
       return;
     }
 
     const options: PositionOptions = {
       enableHighAccuracy,
-      timeout: 10000,
-      maximumAge: 300000, // 5 minutes
+      timeout: 15000,
+      maximumAge: watchPosition ? 60000 : 300000, // 1 minute for watch, 5 minutes for single request
     };
 
     const handleSuccess = (position: GeolocationPosition) => {
@@ -38,6 +44,8 @@ export const useGeolocation = (enableHighAccuracy = true) => {
         },
         loading: false,
         error: null,
+        accuracy: position.coords.accuracy,
+        timestamp: position.timestamp,
       });
     };
 
@@ -60,25 +68,37 @@ export const useGeolocation = (enableHighAccuracy = true) => {
         location: null,
         loading: false,
         error: errorMessage,
+        accuracy: null,
+        timestamp: null,
       });
     };
 
     navigator.geolocation.getCurrentPosition(handleSuccess, handleError, options);
 
-    // Watch position for real-time updates
-    const watchId = navigator.geolocation.watchPosition(
-      handleSuccess,
-      handleError,
-      options
-    );
+    let watchId: number | undefined;
+    
+    // Watch position for real-time updates if enabled
+    if (watchPosition) {
+      watchId = navigator.geolocation.watchPosition(
+        handleSuccess,
+        handleError,
+        { ...options, maximumAge: 30000 } // More frequent updates for watching
+      );
+    }
 
     return () => {
-      navigator.geolocation.clearWatch(watchId);
+      if (watchId !== undefined) {
+        navigator.geolocation.clearWatch(watchId);
+      }
     };
-  }, [enableHighAccuracy]);
+  }, [enableHighAccuracy, watchPosition]);
 
   const refreshLocation = () => {
-    setState(prev => ({ ...prev, loading: true, error: null }));
+    setState(prev => ({ 
+      ...prev, 
+      loading: true, 
+      error: null 
+    }));
     
     navigator.geolocation.getCurrentPosition(
       (position) => {
@@ -89,6 +109,8 @@ export const useGeolocation = (enableHighAccuracy = true) => {
           },
           loading: false,
           error: null,
+          accuracy: position.coords.accuracy,
+          timestamp: position.timestamp,
         });
       },
       (error) => {
@@ -102,8 +124,29 @@ export const useGeolocation = (enableHighAccuracy = true) => {
     );
   };
 
+  const getLocationString = () => {
+    if (!state.location) return null;
+    return `${state.location.latitude.toFixed(6)}, ${state.location.longitude.toFixed(6)}`;
+  };
+
+  const getDistanceFromLocation = (targetLat: number, targetLng: number): number | null => {
+    if (!state.location) return null;
+    
+    const R = 6371; // Earth's radius in kilometers
+    const dLat = (targetLat - state.location.latitude) * Math.PI / 180;
+    const dLng = (targetLng - state.location.longitude) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(state.location.latitude * Math.PI / 180) * Math.cos(targetLat * Math.PI / 180) * 
+      Math.sin(dLng/2) * Math.sin(dLng/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  };
+
   return {
     ...state,
     refreshLocation,
+    getLocationString,
+    getDistanceFromLocation,
   };
 };
