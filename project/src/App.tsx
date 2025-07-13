@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Header } from './components/layout/Header';
 import { GymCard } from './components/gym/GymCard';
 import { GymMap } from './components/gym/GymMap';
+import { LocationDisplay } from './components/location/LocationDisplay';
 import { BookingModal } from './components/booking/BookingModal';
 import { SubscriptionCard } from './components/subscription/SubscriptionCard';
 import { AIRecommendations } from './components/ai/AIRecommendations';
@@ -10,7 +11,14 @@ import { Gym, User, MapFilters, AIRecommendation } from './types';
 import { Search, Filter, MapPin, Calendar, Brain, Crown } from 'lucide-react';
 
 function App() {
-  const { location, loading: locationLoading, error: locationError, refreshLocation } = useGeolocation();
+  const { 
+    location, 
+    loading: locationLoading, 
+    error: locationError, 
+    refreshLocation,
+    accuracy,
+    getDistanceFromLocation 
+  } = useGeolocation(true, true); // Enable high accuracy and watch position
   const [user] = useState<User>({
     id: '1',
     email: 'john.doe@example.com',
@@ -48,7 +56,6 @@ function App() {
         address: '123 Main St, Downtown',
         latitude: 40.7128,
         longitude: -74.0060,
-        distance: 0.8,
         rating: 4.5,
         reviewCount: 324,
         amenities: ['WiFi', 'Parking', 'Equipment', 'Sauna'],
@@ -77,7 +84,6 @@ function App() {
         address: '456 Oak Ave, Midtown',
         latitude: 40.7589,
         longitude: -73.9851,
-        distance: 2.3,
         rating: 4.2,
         reviewCount: 189,
         amenities: ['Equipment', 'Parking', 'Personal Training'],
@@ -106,7 +112,6 @@ function App() {
         address: '789 Pine St, Uptown',
         latitude: 40.7831,
         longitude: -73.9712,
-        distance: 1.5,
         rating: 4.8,
         reviewCount: 267,
         amenities: ['WiFi', 'Yoga', 'Meditation', 'Sauna'],
@@ -130,9 +135,16 @@ function App() {
         },
       },
     ];
+    
+    // Calculate distances if user location is available
+    const gymsWithDistance = mockGyms.map(gym => ({
+      ...gym,
+      distance: location ? getDistanceFromLocation(gym.latitude, gym.longitude) : undefined
+    }));
+    
     setGyms(mockGyms);
-    setFilteredGyms(mockGyms);
-  }, []);
+    setFilteredGyms(gymsWithDistance);
+  }, [location, getDistanceFromLocation]);
 
   // Load AI recommendations when location is available
   useEffect(() => {
@@ -290,30 +302,14 @@ function App() {
           </div>
         </div>
 
-        {/* Location Status */}
-        {locationLoading && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-            <div className="flex items-center space-x-3">
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
-              <span className="text-blue-800">Detecting your location...</span>
-            </div>
-          </div>
-        )}
-
-        {locationError && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-            <div className="flex items-center space-x-3">
-              <MapPin className="h-5 w-5 text-red-600" />
-              <span className="text-red-800">{locationError}</span>
-              <button
-                onClick={refreshLocation}
-                className="text-red-600 hover:text-red-700 font-medium"
-              >
-                Try Again
-              </button>
-            </div>
-          </div>
-        )}
+        {/* Location Display */}
+        <LocationDisplay
+          location={location}
+          loading={locationLoading}
+          error={locationError}
+          onRefresh={refreshLocation}
+          className="mb-6"
+        />
 
         {/* Navigation Tabs */}
         <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg mb-8 max-w-md mx-auto">
@@ -385,6 +381,31 @@ function App() {
                   onBook={handleBookGym}
                 />
               ))}
+              
+              {/* Location Info Card */}
+              {location && (
+                <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-xl p-4">
+                  <h3 className="font-semibold text-gray-900 mb-2">Your Location</h3>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Coordinates:</span>
+                      <span className="font-mono text-gray-900">
+                        {location.latitude.toFixed(6)}, {location.longitude.toFixed(6)}
+                      </span>
+                    </div>
+                    {accuracy && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Accuracy:</span>
+                        <span className="text-gray-900">±{Math.round(accuracy)}m</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Nearby Gyms:</span>
+                      <span className="text-gray-900">{filteredGyms.length} found</span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
