@@ -29,8 +29,7 @@ export const GoogleMap: React.FC<GoogleMapProps> = ({
   useEffect(() => {
     const initMap = async () => {
       const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-      console.log("Google Maps API Key: ", apiKey);
-
+    
       
       if (!apiKey) {
         setError('Google Maps API key not found. Please add VITE_GOOGLE_MAPS_API_KEY to your .env file.');
