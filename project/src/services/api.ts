@@ -1,13 +1,9 @@
-// api.ts
-
-import { User } from '../contexts/AuthContext'; // Make sure this path is correct
-
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
 
 class ApiService {
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const token = localStorage.getItem('authToken');
-
+    
     const config: RequestInit = {
       headers: {
         'Content-Type': 'application/json',
@@ -18,49 +14,43 @@ class ApiService {
     };
 
     const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
-
+    
     if (!response.ok) {
       throw new Error(`API Error: ${response.status} ${response.statusText}`);
     }
-
+    
     return response.json();
   }
 
-  // ✅ Auth endpoints with types
-  async login(email: string, password: string): Promise<{ user: User; token: string }> {
-    return this.request<{ user: User; token: string }>('/auth/login', {
+  // Auth endpoints
+  async login(email: string, password: string) {
+    return this.request('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     });
   }
 
-  async register(userData: {
-    username: string;
-    email: string;
-    password: string;
-    contactNumber: string;
-  }): Promise<{ user: User; token: string }> {
-    return this.request<{ user: User; token: string }>('/auth/register', {
+  async register(userData: any) {
+    return this.request('/auth/register', {
       method: 'POST',
       body: JSON.stringify(userData),
     });
   }
 
-  async validateToken(token: string): Promise<User> {
-    return this.request<User>('/auth/validate', {
+  async validateToken(token: string) {
+    return this.request('/auth/validate', {
       headers: {
         Authorization: `Bearer ${token}`,
       },
     });
   }
-
   // User endpoints
-  async getCurrentUser(): Promise<User> {
-    return this.request<User>('/users/me');
+  async getCurrentUser() {
+    return this.request('/users/me');
   }
 
-  async updateProfile(userData: any): Promise<User> {
-    return this.request<User>('/users/me', {
+  async updateProfile(userData: any) {
+    return this.request('/users/me', {
       method: 'PUT',
       body: JSON.stringify(userData),
     });
@@ -89,7 +79,6 @@ class ApiService {
       body: JSON.stringify(gymData),
     });
   }
-
   // Booking endpoints
   async getAvailableSlots(gymId: string, date: string) {
     return this.request(`/gyms/${gymId}/slots?date=${date}`);
