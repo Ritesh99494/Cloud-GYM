@@ -1,5 +1,13 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from 'react';
 import { apiService } from '../services/api';
+
+// -------------------- Interfaces --------------------
 
 interface User {
   id: string;
@@ -7,6 +15,13 @@ interface User {
   email: string;
   role: 'USER' | 'ADMIN';
   contactNumber?: string;
+}
+
+interface RegisterData {
+  username: string;
+  email: string;
+  password: string;
+  contactNumber: string;
 }
 
 interface AuthContextType {
@@ -20,22 +35,19 @@ interface AuthContextType {
   loading: boolean;
 }
 
-interface RegisterData {
-  username: string;
-  email: string;
-  password: string;
-  contactNumber: string;
-}
+// -------------------- Context Setup --------------------
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const useAuth = () => {
+export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
-  if (context === undefined) {
+  if (!context) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
 };
+
+// -------------------- Auth Provider --------------------
 
 interface AuthProviderProps {
   children: ReactNode;
@@ -43,7 +55,7 @@ interface AuthProviderProps {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(localStorage.getItem('authToken'));
+  const [token, setToken] = useState<string | null>(() => localStorage.getItem('authToken'));
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -51,10 +63,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const storedToken = localStorage.getItem('authToken');
       if (storedToken) {
         try {
-          const userData = await apiService.validateToken(storedToken);
+          const userData = await apiService.validateToken(storedToken)as User;
           setUser(userData);
           setToken(storedToken);
         } catch (error) {
+          console.error('Token validation failed:', error);
           localStorage.removeItem('authToken');
           setToken(null);
         }
@@ -67,13 +80,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const login = async (email: string, password: string) => {
     try {
-      const response = await apiService.login(email, password);
+      const response = await apiService.login(email, password) as { user: User; token: string };
       const { user: userData, token: authToken } = response;
-      
+
       setUser(userData);
       setToken(authToken);
       localStorage.setItem('authToken', authToken);
     } catch (error) {
+      console.error('Login error:', error);
       throw new Error('Invalid credentials');
     }
   };
@@ -82,11 +96,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const response = await apiService.register(userData);
       const { user: newUser, token: authToken } = response;
-      
+
       setUser(newUser);
       setToken(authToken);
       localStorage.setItem('authToken', authToken);
     } catch (error) {
+      console.error('Registration error:', error);
       throw new Error('Registration failed');
     }
   };
@@ -108,5 +123,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     loading,
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
 };

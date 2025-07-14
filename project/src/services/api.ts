@@ -1,3 +1,5 @@
+import { User } from "../types";
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
 
 class ApiService {
@@ -23,20 +25,27 @@ class ApiService {
   }
 
   // Auth endpoints
-  async login(email: string, password: string) {
+  async login(email: string, password: string):Promise<{ user: User; token: string }> {
     return this.request('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     });
   }
 
-  async register(userData: any) {
+  async register(userData: any): Promise<{ user: User; token: string }> {
     return this.request('/auth/register', {
       method: 'POST',
       body: JSON.stringify(userData),
     });
   }
 
+  async validateToken(token: string) {
+    return this.request('/auth/validate', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  }
   // User endpoints
   async getCurrentUser() {
     return this.request('/users/me');
@@ -66,6 +75,12 @@ class ApiService {
     return this.request(`/gyms/search?${params}`);
   }
 
+  async createGym(gymData: any) {
+    return this.request('/gyms', {
+      method: 'POST',
+      body: JSON.stringify(gymData),
+    });
+  }
   // Booking endpoints
   async getAvailableSlots(gymId: string, date: string) {
     return this.request(`/gyms/${gymId}/slots?date=${date}`);
