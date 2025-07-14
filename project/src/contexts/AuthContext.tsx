@@ -9,7 +9,7 @@ import { apiService } from '../services/api';
 
 // -------------------- Interfaces --------------------
 
-interface User {
+export interface User {
   id: string;
   username: string;
   email: string;
@@ -58,18 +58,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [token, setToken] = useState<string | null>(() => localStorage.getItem('authToken'));
   const [loading, setLoading] = useState(true);
 
+  // ✅ Load user on page refresh if token exists
   useEffect(() => {
     const initAuth = async () => {
       const storedToken = localStorage.getItem('authToken');
       if (storedToken) {
         try {
-          const userData = await apiService.validateToken(storedToken)as User;
+          const userData = await apiService.validateToken(storedToken); // Already typed as User
           setUser(userData);
           setToken(storedToken);
         } catch (error) {
-          console.error('Token validation failed:', error);
+          console.error('❌ Token validation failed:', error);
           localStorage.removeItem('authToken');
           setToken(null);
+          setUser(null);
         }
       }
       setLoading(false);
@@ -78,40 +80,44 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     initAuth();
   }, []);
 
+  // ✅ Login
   const login = async (email: string, password: string) => {
     try {
-      const response = await apiService.login(email, password) as { user: User; token: string };
+      const response = await apiService.login(email, password); // { user, token }
       const { user: userData, token: authToken } = response;
 
       setUser(userData);
       setToken(authToken);
       localStorage.setItem('authToken', authToken);
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('❌ Login error:', error);
       throw new Error('Invalid credentials');
     }
   };
 
+  // ✅ Register
   const register = async (userData: RegisterData) => {
     try {
-      const response = await apiService.register(userData);
+      const response = await apiService.register(userData); // { user, token }
       const { user: newUser, token: authToken } = response;
 
       setUser(newUser);
       setToken(authToken);
       localStorage.setItem('authToken', authToken);
     } catch (error) {
-      console.error('Registration error:', error);
+      console.error('❌ Registration error:', error);
       throw new Error('Registration failed');
     }
   };
 
+  // ✅ Logout
   const logout = () => {
     setUser(null);
     setToken(null);
     localStorage.removeItem('authToken');
   };
 
+  // ✅ Context value
   const value: AuthContextType = {
     user,
     token,
