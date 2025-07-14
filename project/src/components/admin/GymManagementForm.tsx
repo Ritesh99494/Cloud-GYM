@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Save, MapPin, Clock, Users, DollarSign, Phone, Mail } from 'lucide-react';
-import { apiService } from '../services/api';
+import { apiService } from '../../services/api';
 
 interface GymFormData {
   name: string;
