@@ -2,7 +2,12 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080
 
 class ApiService {
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+    console.log('=== API REQUEST DEBUG ===');
+    console.log('Endpoint:', endpoint);
+    console.log('Options:', { ...options, body: options.body ? '[BODY_PRESENT]' : undefined });
+    
     const token = localStorage.getItem('authToken');
+    console.log('Auth token present:', !!token);
     
     const config: RequestInit = {
       headers: {
@@ -13,17 +18,32 @@ class ApiService {
       ...options,
     };
 
+    console.log('Final request config:', { 
+      url: `${API_BASE_URL}${endpoint}`,
+      method: config.method || 'GET',
+      headers: config.headers
+    });
+
     const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
     
+    console.log('Response status:', response.status);
+    console.log('Response ok:', response.ok);
+    
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error('API Error Response:', errorText);
       throw new Error(`API Error: ${response.status} ${response.statusText}`);
     }
     
-    return response.json();
+    const data = await response.json();
+    console.log('Response data:', data);
+    console.log('=== API REQUEST DEBUG END ===');
+    return data;
   }
 
   // Auth endpoints
   async login(email: string, password: string) {
+    console.log('API: Login request for email:', email);
     return this.request('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
@@ -31,6 +51,7 @@ class ApiService {
   }
 
   async register(userData: any) {
+    console.log('API: Register request for user:', userData.email);
     return this.request('/auth/register', {
       method: 'POST',
       body: JSON.stringify(userData),
@@ -38,6 +59,7 @@ class ApiService {
   }
 
   async validateToken(token: string) {
+    console.log('API: Token validation request');
     return this.request('/auth/validate', {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -46,10 +68,12 @@ class ApiService {
   }
   // User endpoints
   async getCurrentUser() {
+    console.log('API: Get current user request');
     return this.request('/users/me');
   }
 
   async updateProfile(userData: any) {
+    console.log('API: Update profile request');
     return this.request('/users/me', {
       method: 'PUT',
       body: JSON.stringify(userData),
@@ -58,6 +82,7 @@ class ApiService {
 
   // Gym endpoints
   async getNearbyGyms(latitude: number, longitude: number, radius: number = 10) {
+    console.log('API: Get nearby gyms request:', { latitude, longitude, radius });
     return this.request(`/gyms/nearby?lat=${latitude}&lng=${longitude}&radius=${radius}`);
   }
 

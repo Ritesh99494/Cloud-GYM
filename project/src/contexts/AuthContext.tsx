@@ -1,15 +1,7 @@
-import React, {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  ReactNode,
-} from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { apiService } from '../services/api';
 
-// -------------------- Interfaces --------------------
-
-export interface User {
+interface User {
   id: string;
   username: string;
   email: string;
@@ -24,6 +16,11 @@ interface RegisterData {
   contactNumber: string;
 }
 
+interface AuthResponse {
+  user: User;
+  token: string;
+}
+
 interface AuthContextType {
   user: User | null;
   token: string | null;
@@ -35,8 +32,6 @@ interface AuthContextType {
   loading: boolean;
 }
 
-// -------------------- Context Setup --------------------
-
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const useAuth = (): AuthContextType => {
@@ -47,8 +42,6 @@ export const useAuth = (): AuthContextType => {
   return context;
 };
 
-// -------------------- Auth Provider --------------------
-
 interface AuthProviderProps {
   children: ReactNode;
 }
@@ -58,20 +51,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [token, setToken] = useState<string | null>(() => localStorage.getItem('authToken'));
   const [loading, setLoading] = useState(true);
 
-  // ✅ Load user on page refresh if token exists
   useEffect(() => {
     const initAuth = async () => {
       const storedToken = localStorage.getItem('authToken');
       if (storedToken) {
         try {
-          const userData = await apiService.validateToken(storedToken); // Already typed as User
+          const userData = await apiService.validateToken(storedToken) as User;
           setUser(userData);
           setToken(storedToken);
         } catch (error) {
-          console.error('❌ Token validation failed:', error);
+          console.error('Token validation failed:', error);
           localStorage.removeItem('authToken');
           setToken(null);
-          setUser(null);
         }
       }
       setLoading(false);
@@ -80,44 +71,40 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     initAuth();
   }, []);
 
-  // ✅ Login
   const login = async (email: string, password: string) => {
+    console.log('Login attempt for:', email);
     try {
-      const response = await apiService.login(email, password); // { user, token }
-      const { user: userData, token: authToken } = response;
-
-      setUser(userData);
-      setToken(authToken);
-      localStorage.setItem('authToken', authToken);
+      const response = await apiService.login(email, password) as AuthResponse;
+      setUser(response.user);
+      setToken(response.token);
+      localStorage.setItem('authToken', response.token);
+      console.log('Login successful');
     } catch (error) {
-      console.error('❌ Login error:', error);
+      console.error('Login failed:', error);
       throw new Error('Invalid credentials');
     }
   };
 
-  // ✅ Register
   const register = async (userData: RegisterData) => {
+    console.log('Register attempt for:', userData.email);
     try {
-      const response = await apiService.register(userData); // { user, token }
-      const { user: newUser, token: authToken } = response;
-
-      setUser(newUser);
-      setToken(authToken);
-      localStorage.setItem('authToken', authToken);
+      const response = await apiService.register(userData) as AuthResponse;
+      setUser(response.user);
+      setToken(response.token);
+      localStorage.setItem('authToken', response.token);
+      console.log('Registration successful');
     } catch (error) {
-      console.error('❌ Registration error:', error);
+      console.error('Registration failed:', error);
       throw new Error('Registration failed');
     }
   };
 
-  // ✅ Logout
   const logout = () => {
     setUser(null);
     setToken(null);
     localStorage.removeItem('authToken');
   };
 
-  // ✅ Context value
   const value: AuthContextType = {
     user,
     token,
@@ -129,9 +116,5 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     loading,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
