@@ -60,18 +60,28 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('=== REGISTRATION FORM SUBMISSION DEBUG START ===');
+    console.log('Form data:', {
+      username: formData.username,
+      email: formData.email,
+      contactNumber: formData.contactNumber,
+      password: formData.password ? '[HIDDEN]' : 'empty',
+      confirmPassword: formData.confirmPassword ? '[HIDDEN]' : 'empty'
+    });
     
     if (!validateForm()) return;
 
     setLoading(true);
 
     try {
+      console.log('Validation passed, calling register API...');
       await register({
         username: formData.username,
         email: formData.email,
         password: formData.password,
         contactNumber: formData.contactNumber,
       });
+      console.log('Registration successful, closing modal');
       onClose();
       setFormData({
         username: '',
@@ -81,9 +91,11 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
         contactNumber: '',
       });
     } catch (err) {
+      console.error('Registration failed:', err);
       setErrors({ general: 'Registration failed. Please try again.' });
     } finally {
       setLoading(false);
+      console.log('=== REGISTRATION FORM SUBMISSION DEBUG END ===');
     }
   };
 

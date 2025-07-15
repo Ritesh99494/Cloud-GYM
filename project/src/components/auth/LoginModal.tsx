@@ -23,18 +23,25 @@ export const LoginModal: React.FC<LoginModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('=== LOGIN FORM SUBMISSION DEBUG START ===');
+    console.log('Form data:', { email, password: password ? '[HIDDEN]' : 'empty' });
+    
     setLoading(true);
     setError('');
 
     try {
+      console.log('Calling login API...');
       await login(email, password);
+      console.log('Login successful, closing modal');
       onClose();
       setEmail('');
       setPassword('');
     } catch (err) {
+      console.error('Login failed:', err);
       setError('Invalid email or password');
     } finally {
       setLoading(false);
+      console.log('=== LOGIN FORM SUBMISSION DEBUG END ===');
     }
   };
 
