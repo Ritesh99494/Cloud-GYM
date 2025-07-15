@@ -64,24 +64,24 @@ export const useGeolocation = (enableHighAccuracy = true, watchPosition = true) 
     };
 
     const handleError = (error: GeolocationPositionError) => {
-      console.error('=== GEOLOCATION ERROR ===');
-      console.error('Geolocation error code:', error.code);
-      console.error('Geolocation error message:', error.message);
+      console.warn('=== GEOLOCATION ERROR ===');
+      console.warn('Geolocation error code:', error.code);
+      console.warn('Geolocation error message:', error.message);
       
       let errorMessage = 'Unable to retrieve your location.';
       
       switch (error.code) {
         case error.PERMISSION_DENIED:
-          errorMessage = 'Location access denied. Please enable location services.';
-          console.error('User denied location permission');
+          errorMessage = 'Location access denied. To enable location services, click the location icon in your browser\'s address bar or go to your browser settings and allow location access for this site.';
+          console.warn('User denied location permission');
           break;
         case error.POSITION_UNAVAILABLE:
           errorMessage = 'Location information is unavailable.';
-          console.error('Location information unavailable');
+          console.warn('Location information unavailable');
           break;
         case error.TIMEOUT:
           errorMessage = 'Location request timed out.';
-          console.error('Location request timeout');
+          console.warn('Location request timeout');
           break;
       }
 
