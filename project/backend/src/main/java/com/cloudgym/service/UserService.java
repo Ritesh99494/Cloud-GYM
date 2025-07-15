@@ -22,13 +22,15 @@ public class UserService {
         if (userRepository.existsByEmail(userDTO.getEmail())) {
             throw new RuntimeException("Email already exists");
         }
+        if (userRepository.existsByUsername(userDTO.getUsername())) {
+            throw new RuntimeException("Username already exists");
+        }
 
         User user = new User();
+        user.setUsername(userDTO.getUsername());
         user.setEmail(userDTO.getEmail());
         user.setPassword(passwordEncoder.encode(password));
-        user.setFirstName(userDTO.getFirstName());
-        user.setLastName(userDTO.getLastName());
-        user.setPhone(userDTO.getPhone());
+        user.setContactNumber(userDTO.getContactNumber());
         user.setFitnessGoals(userDTO.getFitnessGoals());
 
         User savedUser = userRepository.save(user);
@@ -47,9 +49,8 @@ public class UserService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        user.setFirstName(userDTO.getFirstName());
-        user.setLastName(userDTO.getLastName());
-        user.setPhone(userDTO.getPhone());
+        user.setUsername(userDTO.getUsername());
+        user.setContactNumber(userDTO.getContactNumber());
         user.setFitnessGoals(userDTO.getFitnessGoals());
         user.setProfileImage(userDTO.getProfileImage());
 
