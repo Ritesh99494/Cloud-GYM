@@ -18,11 +18,19 @@ import java.util.Collections;
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    @Autowired
     private JwtTokenProvider tokenProvider;
+    private UserService userService;
+
+    // Use setter injection to avoid circular dependency
+    @Autowired
+    public void setTokenProvider(JwtTokenProvider tokenProvider) {
+        this.tokenProvider = tokenProvider;
+    }
 
     @Autowired
-    private UserService userService;
+    public void setUserService(UserService userService) {
+        this.userService = userService;
+    }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, 
@@ -30,7 +38,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         
         String token = getTokenFromRequest(request);
         
-        if (token != null && tokenProvider.validateToken(token)) {
+        if (token != null && tokenProvider != null && tokenProvider.validateToken(token)) {
             String email = tokenProvider.getEmailFromToken(token);
             String role = tokenProvider.getRoleFromToken(token);
             
