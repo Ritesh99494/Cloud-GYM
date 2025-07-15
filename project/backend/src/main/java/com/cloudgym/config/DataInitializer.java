@@ -41,15 +41,25 @@ public class DataInitializer implements CommandLineRunner {
     private void initializeData() {
         // Create sample user
         User user = new User();
+        user.setUsername("johndoe");
         user.setEmail("john.doe@example.com");
         user.setPassword(passwordEncoder.encode("password123"));
-        user.setFirstName("John");
-        user.setLastName("Doe");
-        user.setPhone("+1234567890");
+        user.setContactNumber("+1234567890");
         user.setSubscriptionStatus(User.SubscriptionStatus.ACTIVE);
         user.setSubscriptionPlan(User.SubscriptionPlan.PREMIUM);
         user.setFitnessGoals(Arrays.asList("Weight Loss", "Strength Training", "Cardio"));
         userRepository.save(user);
+
+        // Create admin user
+        User admin = new User();
+        admin.setUsername("admin");
+        admin.setEmail("admin@cloudgym.com");
+        admin.setPassword(passwordEncoder.encode("admin123"));
+        admin.setContactNumber("+1234567891");
+        admin.setRole(User.Role.ADMIN);
+        admin.setSubscriptionStatus(User.SubscriptionStatus.ACTIVE);
+        admin.setSubscriptionPlan(User.SubscriptionPlan.ELITE);
+        userRepository.save(admin);
 
         // Create sample gyms
         Gym gym1 = createGym(
