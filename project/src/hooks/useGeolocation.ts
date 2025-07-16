@@ -180,7 +180,6 @@ export const useGeolocation = (enableHighAccuracy = true, watchPosition = true) 
     console.log('Calculated distance:', distance, 'km');
     return distance;
   };
-
   return {
     ...state,
     refreshLocation,
