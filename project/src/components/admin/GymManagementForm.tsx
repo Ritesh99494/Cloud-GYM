@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Save, MapPin, Clock, Users, DollarSign, Phone, Mail } from 'lucide-react';
+import { Save, MapPin, Clock, Users, DollarSign, Phone, Mail, CheckCircle, AlertCircle } from 'lucide-react';
 import { apiService } from '../../services/api';
 
 interface GymFormData {
@@ -59,6 +59,9 @@ export const GymManagementForm: React.FC = () => {
   const [success, setSuccess] = useState(false);
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [marker, setMarker] = useState<google.maps.Marker | null>(null);
+  const [mapLoading, setMapLoading] = useState(true);
+  const [mapError, setMapError] = useState<string | null>(null);
+  
   const mapRef = useRef<HTMLDivElement>(null);
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
   const addressInputRef = useRef<HTMLInputElement>(null);
@@ -68,37 +71,84 @@ export const GymManagementForm: React.FC = () => {
   }, []);
 
   const initializeMap = async () => {
-    if (!mapRef.current) return;
+    console.log('=== INITIALIZING GOOGLE MAPS FOR ADMIN ===');
+    
+    if (!mapRef.current) {
+      console.error('Map container not found');
+      setMapError('Map container not available');
+      setMapLoading(false);
+      return;
+    }
+
+    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+    
+    if (!apiKey) {
+      console.error('Google Maps API key not found');
+      setMapError('Google Maps API key not found. Please add VITE_GOOGLE_MAPS_API_KEY to your .env.local file.');
+      setMapLoading(false);
+      return;
+    }
 
     try {
-      const { Map } = await google.maps.importLibrary("maps") as google.maps.MapsLibrary;
-      const { Marker } = await google.maps.importLibrary("marker") as google.maps.MarkerLibrary;
-      const { Autocomplete } = await google.maps.importLibrary("places") as google.maps.PlacesLibrary;
+      // Load Google Maps API
+      const script = document.createElement('script');
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
+      script.async = true;
+      script.defer = true;
+      
+      script.onload = () => {
+        console.log('Google Maps API loaded for admin');
+        initializeMapInstance();
+      };
+      
+      script.onerror = () => {
+        console.error('Failed to load Google Maps API');
+        setMapError('Failed to load Google Maps API. Please check your API key.');
+        setMapLoading(false);
+      };
+      
+      document.head.appendChild(script);
+    } catch (error) {
+      console.error('Error loading Google Maps:', error);
+      setMapError('Error loading Google Maps API');
+      setMapLoading(false);
+    }
+  };
 
-      const mapInstance = new Map(mapRef.current, {
+  const initializeMapInstance = () => {
+    try {
+      const mapInstance = new google.maps.Map(mapRef.current!, {
         center: { lat: 40.7128, lng: -74.0060 }, // Default to NYC
         zoom: 13,
         mapTypeControl: false,
         streetViewControl: false,
+        fullscreenControl: true,
+        zoomControl: true,
       });
 
       setMap(mapInstance);
+      setMapLoading(false);
+      setMapError(null);
 
       // Initialize autocomplete
       if (addressInputRef.current) {
-        const autocomplete = new Autocomplete(addressInputRef.current, {
+        const autocomplete = new google.maps.places.Autocomplete(addressInputRef.current, {
           types: ['establishment', 'geocode'],
         });
 
         autocomplete.addListener('place_changed', () => {
           const place = autocomplete.getPlace();
+          console.log('Place selected:', place);
+          
           if (place.geometry?.location) {
             const lat = place.geometry.location.lat();
             const lng = place.geometry.location.lng();
             
+            console.log('Coordinates from place:', { lat, lng });
+            
             setFormData(prev => ({
               ...prev,
-              address: place.formatted_address || '',
+              address: place.formatted_address || place.name || '',
               latitude: lat,
               longitude: lng,
             }));
@@ -107,15 +157,7 @@ export const GymManagementForm: React.FC = () => {
             mapInstance.setZoom(15);
 
             // Add marker
-            if (marker) {
-              marker.setMap(null);
-            }
-            const newMarker = new Marker({
-              position: { lat, lng },
-              map: mapInstance,
-              title: formData.name || 'New Gym Location',
-            });
-            setMarker(newMarker);
+            updateMarker(mapInstance, lat, lng);
           }
         });
 
@@ -128,6 +170,8 @@ export const GymManagementForm: React.FC = () => {
           const lat = e.latLng.lat();
           const lng = e.latLng.lng();
           
+          console.log('Map clicked at:', { lat, lng });
+          
           setFormData(prev => ({
             ...prev,
             latitude: lat,
@@ -138,35 +182,68 @@ export const GymManagementForm: React.FC = () => {
           const geocoder = new google.maps.Geocoder();
           geocoder.geocode({ location: { lat, lng } }, (results, status) => {
             if (status === 'OK' && results?.[0]) {
+              const address = results[0].formatted_address;
+              console.log('Reverse geocoded address:', address);
+              
               setFormData(prev => ({
                 ...prev,
-                address: results[0].formatted_address,
+                address: address,
               }));
+              
               if (addressInputRef.current) {
-                addressInputRef.current.value = results[0].formatted_address;
+                addressInputRef.current.value = address;
               }
             }
           });
 
           // Add marker
-          if (marker) {
-            marker.setMap(null);
-          }
-          const newMarker = new google.maps.Marker({
-            position: { lat, lng },
-            map: mapInstance,
-            title: formData.name || 'New Gym Location',
-          });
-          setMarker(newMarker);
+          updateMarker(mapInstance, lat, lng);
         }
       });
 
+      console.log('Map initialized successfully');
     } catch (error) {
-      console.error('Error initializing map:', error);
+      console.error('Error initializing map instance:', error);
+      setMapError('Error initializing map');
+      setMapLoading(false);
     }
   };
 
+  const updateMarker = (mapInstance: google.maps.Map, lat: number, lng: number) => {
+    // Remove existing marker
+    if (marker) {
+      marker.setMap(null);
+    }
+
+    // Create new marker
+    const newMarker = new google.maps.Marker({
+      position: { lat, lng },
+      map: mapInstance,
+      title: formData.name || 'New Gym Location',
+      draggable: true,
+    });
+
+    // Add drag listener
+    newMarker.addListener('dragend', (e: google.maps.MapMouseEvent) => {
+      if (e.latLng) {
+        const newLat = e.latLng.lat();
+        const newLng = e.latLng.lng();
+        
+        console.log('Marker dragged to:', { lat: newLat, lng: newLng });
+        
+        setFormData(prev => ({
+          ...prev,
+          latitude: newLat,
+          longitude: newLng,
+        }));
+      }
+    });
+
+    setMarker(newMarker);
+  };
+
   const validateForm = () => {
+    console.log('=== VALIDATING FORM ===');
     const newErrors: Record<string, string> = {};
 
     if (!formData.name.trim()) newErrors.name = 'Gym name is required';
@@ -177,6 +254,19 @@ export const GymManagementForm: React.FC = () => {
     if (!formData.contactPhone.trim()) newErrors.contactPhone = 'Contact phone is required';
     if (!formData.contactEmail.trim()) newErrors.contactEmail = 'Contact email is required';
 
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (formData.contactEmail && !emailRegex.test(formData.contactEmail)) {
+      newErrors.contactEmail = 'Please enter a valid email address';
+    }
+
+    // Phone validation
+    const phoneRegex = /^[+]?[\d\s\-\(\)]{10,}$/;
+    if (formData.contactPhone && !phoneRegex.test(formData.contactPhone)) {
+      newErrors.contactPhone = 'Please enter a valid phone number';
+    }
+
+    console.log('Validation errors:', newErrors);
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -184,13 +274,20 @@ export const GymManagementForm: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validateForm()) return;
+    console.log('=== FORM SUBMISSION START ===');
+    console.log('Form data:', formData);
+    
+    if (!validateForm()) {
+      console.log('Form validation failed');
+      return;
+    }
 
     setLoading(true);
     setSuccess(false);
+    setErrors({});
 
     try {
-      await apiService.createGym({
+      const gymData = {
         name: formData.name,
         description: formData.description,
         address: formData.address,
@@ -199,7 +296,12 @@ export const GymManagementForm: React.FC = () => {
         priceRange: `$${formData.membershipPrice}`,
         capacity: formData.capacity!,
         amenities: formData.amenities,
-        operatingHours: formData.operatingHours,
+        operatingHours: Object.fromEntries(
+          Object.entries(formData.operatingHours).map(([day, hours]) => [
+            day,
+            `${hours.open}-${hours.close}`
+          ])
+        ),
         contactInfo: {
           phone: formData.contactPhone,
           email: formData.contactEmail,
@@ -208,9 +310,15 @@ export const GymManagementForm: React.FC = () => {
         rating: 0,
         reviewCount: 0,
         currentOccupancy: 0,
-      });
+      };
+
+      console.log('Sending gym data to API:', gymData);
+
+      const response = await apiService.createGym(gymData);
+      console.log('API response:', response);
 
       setSuccess(true);
+      
       // Reset form
       setFormData({
         name: '',
@@ -241,7 +349,12 @@ export const GymManagementForm: React.FC = () => {
         marker.setMap(null);
         setMarker(null);
       }
+
+      // Auto-hide success message after 5 seconds
+      setTimeout(() => setSuccess(false), 5000);
+      
     } catch (error) {
+      console.error('Form submission error:', error);
       setErrors({ general: 'Failed to create gym. Please try again.' });
     } finally {
       setLoading(false);
@@ -279,14 +392,22 @@ export const GymManagementForm: React.FC = () => {
         </div>
 
         {success && (
-          <div className="m-6 p-4 bg-green-50 border border-green-200 rounded-lg text-green-700">
-            Gym created successfully!
+          <div className="m-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+            <div className="flex items-center space-x-2">
+              <CheckCircle className="h-5 w-5 text-green-600" />
+              <span className="text-green-800 font-medium">Success!</span>
+            </div>
+            <p className="text-green-700 mt-1">Gym created successfully and added to the database.</p>
           </div>
         )}
 
         {errors.general && (
-          <div className="m-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
-            {errors.general}
+          <div className="m-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <div className="flex items-center space-x-2">
+              <AlertCircle className="h-5 w-5 text-red-600" />
+              <span className="text-red-800 font-medium">Error</span>
+            </div>
+            <p className="text-red-700 mt-1">{errors.general}</p>
           </div>
         )}
 
@@ -366,12 +487,35 @@ export const GymManagementForm: React.FC = () => {
           {/* Map */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Location on Map
+              Location on Map *
             </label>
-            <div ref={mapRef} className="w-full h-64 rounded-lg border border-gray-300"></div>
+            <div className="w-full h-64 rounded-lg border border-gray-300 overflow-hidden">
+              {mapLoading ? (
+                <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                    <p className="text-gray-600">Loading map...</p>
+                  </div>
+                </div>
+              ) : mapError ? (
+                <div className="w-full h-full bg-red-50 flex items-center justify-center p-4">
+                  <div className="text-center">
+                    <AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-2" />
+                    <p className="text-red-700 text-sm">{mapError}</p>
+                  </div>
+                </div>
+              ) : (
+                <div ref={mapRef} className="w-full h-full"></div>
+              )}
+            </div>
             <p className="mt-2 text-sm text-gray-600">
               Search for an address above or click on the map to set the gym location
             </p>
+            {formData.latitude && formData.longitude && (
+              <p className="mt-1 text-xs text-green-600">
+                Location set: {formData.latitude.toFixed(6)}, {formData.longitude.toFixed(6)}
+              </p>
+            )}
           </div>
 
           {/* Capacity */}
@@ -410,14 +554,14 @@ export const GymManagementForm: React.FC = () => {
                       type="time"
                       value={hours.open}
                       onChange={(e) => handleOperatingHoursChange(day, 'open', e.target.value)}
-                      className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm"
+                      className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500"
                     />
                     <span className="text-gray-500">to</span>
                     <input
                       type="time"
                       value={hours.close}
                       onChange={(e) => handleOperatingHoursChange(day, 'close', e.target.value)}
-                      className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm"
+                      className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500"
                     />
                   </div>
                 </div>
@@ -432,7 +576,7 @@ export const GymManagementForm: React.FC = () => {
             </label>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
               {AMENITY_OPTIONS.map((amenity) => (
-                <label key={amenity} className="flex items-center space-x-2 cursor-pointer">
+                <label key={amenity} className="flex items-center space-x-2 cursor-pointer p-2 rounded-lg hover:bg-gray-50">
                   <input
                     type="checkbox"
                     checked={formData.amenities.includes(amenity)}
@@ -443,6 +587,11 @@ export const GymManagementForm: React.FC = () => {
                 </label>
               ))}
             </div>
+            {formData.amenities.length > 0 && (
+              <p className="mt-2 text-sm text-gray-600">
+                Selected: {formData.amenities.length} amenities
+              </p>
+            )}
           </div>
 
           {/* Contact Information */}
@@ -491,10 +640,13 @@ export const GymManagementForm: React.FC = () => {
             <button
               type="submit"
               disabled={loading}
-              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium py-3 px-6 rounded-lg transition-all flex items-center space-x-2 disabled:opacity-50"
+              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium py-3 px-8 rounded-lg transition-all flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105"
             >
               {loading ? (
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                <>
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                  <span>Creating Gym...</span>
+                </>
               ) : (
                 <>
                   <Save className="h-5 w-5" />
