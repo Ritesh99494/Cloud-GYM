@@ -26,6 +26,18 @@ export const GoogleMap: React.FC<GoogleMapProps> = ({
   const [gymMarkers, setGymMarkers] = useState<google.maps.Marker[]>([]);
   const [infoWindows, setInfoWindows] = useState<google.maps.InfoWindow[]>([]);
 
+  // Helper function to convert Location to LatLngLiteral
+  const locationToLatLng = (location: Location): google.maps.LatLngLiteral => ({
+    lat: location.latitude,
+    lng: location.longitude
+  });
+
+  // Helper function to convert gym coordinates to LatLngLiteral
+  const gymToLatLng = (gym: Gym): google.maps.LatLngLiteral => ({
+    lat: gym.latitude,
+    lng: gym.longitude
+  });
+
   // Initialize Google Maps
   useEffect(() => {
     const initMap = async () => {
@@ -58,11 +70,14 @@ export const GoogleMap: React.FC<GoogleMapProps> = ({
         await loader.load();
         console.log('Google Maps API loaded successfully');
 
-        const defaultCenter = userLocation || { lat: 40.7128, lng: -74.0060 }; // Default to NYC
-        console.log('Creating map with center:', defaultCenter);
+        // Convert userLocation to LatLngLiteral or use default
+        const defaultCenter: google.maps.LatLngLiteral = { lat: 40.7128, lng: -74.0060 }; // NYC
+        const mapCenter = userLocation ? locationToLatLng(userLocation) : defaultCenter;
+        
+        console.log('Creating map with center:', mapCenter);
 
         const mapInstance = new google.maps.Map(mapRef.current, {
-          center: { lat: defaultCenter.lat, lng: defaultCenter.lng },
+          center: mapCenter,
           zoom: userLocation ? 13 : 10,
           styles: [
             {
@@ -107,9 +122,12 @@ export const GoogleMap: React.FC<GoogleMapProps> = ({
       userMarker.setMap(null);
     }
 
+    // Convert location to LatLngLiteral
+    const userPosition = locationToLatLng(userLocation);
+
     // Create new user marker with pulsing animation
     const marker = new google.maps.Marker({
-      position: userLocation,
+      position: userPosition,
       map,
       title: 'Your Location',
       icon: {
@@ -125,7 +143,7 @@ export const GoogleMap: React.FC<GoogleMapProps> = ({
 
     // Add pulsing animation circle
     const pulseMarker = new google.maps.Marker({
-      position: userLocation,
+      position: userPosition,
       map,
       icon: {
         path: google.maps.SymbolPath.CIRCLE,
@@ -192,8 +210,11 @@ export const GoogleMap: React.FC<GoogleMapProps> = ({
     const newInfoWindows: google.maps.InfoWindow[] = [];
 
     gyms.forEach((gym) => {
+      // Convert gym coordinates to LatLngLiteral
+      const gymPosition = gymToLatLng(gym);
+
       const marker = new google.maps.Marker({
-        position: { lat: gym.latitude, lng: gym.longitude },
+        position: gymPosition,
         map,
         title: gym.name,
         icon: {
@@ -278,11 +299,14 @@ export const GoogleMap: React.FC<GoogleMapProps> = ({
       const bounds = new google.maps.LatLngBounds();
       
       if (userLocation) {
-        bounds.extend(userLocation);
+        bounds.extend(locationToLatLng(userLocation));
       }
       
       newMarkers.forEach(marker => {
-        bounds.extend(marker.getPosition()!);
+        const position = marker.getPosition();
+        if (position) {
+          bounds.extend(position);
+        }
       });
       
       map.fitBounds(bounds);
@@ -293,7 +317,7 @@ export const GoogleMap: React.FC<GoogleMapProps> = ({
         google.maps.event.removeListener(listener);
       });
     }
-  }, [map, gyms, selectedGym, onGymSelect]);
+  }, [map, gyms, selectedGym, onGymSelect, userLocation]);
 
   // Highlight selected gym
   useEffect(() => {
@@ -313,7 +337,10 @@ export const GoogleMap: React.FC<GoogleMapProps> = ({
           infoWindow.open(map, marker);
         }
         // Center map on selected gym
-        map.setCenter(marker.getPosition()!);
+        const position = marker.getPosition();
+        if (position) {
+          map.setCenter(position);
+        }
       } else {
         marker.setZIndex(500);
       }

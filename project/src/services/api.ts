@@ -83,6 +83,20 @@ class ApiService {
   // Gym endpoints
   async getNearbyGyms(latitude: number, longitude: number, radius: number = 10) {
     console.log('API: Get nearby gyms request:', { latitude, longitude, radius });
+    
+    // Validate coordinates
+    if (!latitude || !longitude) {
+      throw new Error('Invalid coordinates provided');
+    }
+    
+    if (latitude < -90 || latitude > 90) {
+      throw new Error('Invalid latitude: must be between -90 and 90');
+    }
+    
+    if (longitude < -180 || longitude > 180) {
+      throw new Error('Invalid longitude: must be between -180 and 180');
+    }
+    
     return this.request(`/gyms/nearby?lat=${latitude}&lng=${longitude}&radius=${radius}`);
   }
 
@@ -99,6 +113,13 @@ class ApiService {
   }
 
   async createGym(gymData: any) {
+    console.log('API: Create gym request:', gymData);
+    
+    // Validate required fields
+    if (!gymData.name || !gymData.address || !gymData.latitude || !gymData.longitude) {
+      throw new Error('Missing required gym data');
+    }
+    
     return this.request('/gyms', {
       method: 'POST',
       body: JSON.stringify(gymData),
