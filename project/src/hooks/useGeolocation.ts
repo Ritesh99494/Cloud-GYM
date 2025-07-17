@@ -9,21 +9,23 @@ interface GeolocationState {
   timestamp: number | null;
 }
 
-export const useGeolocation = (enableHighAccuracy = true, watchPosition = true) => {
+export const useGeolocation = (enableHighAccuracy = true, watchPosition = false) => {
   const [state, setState] = useState<GeolocationState>({
     location: null,
-    loading: true,
+    loading: false,
     error: null,
     accuracy: null,
     timestamp: null,
   });
 
   useEffect(() => {
-    console.log('=== GEOLOCATION DEBUG START ===');
-    console.log('Geolocation hook initialized with:', { enableHighAccuracy, watchPosition });
+    if (!watchPosition) return;
+
+    console.log('=== GEOLOCATION HOOK INITIALIZED ===');
+    console.log('Options:', { enableHighAccuracy, watchPosition });
     
     if (!navigator.geolocation) {
-      console.error('Geolocation not supported by browser');
+      console.warn('Geolocation not supported by browser');
       setState({
         location: null,
         loading: false,
@@ -34,17 +36,17 @@ export const useGeolocation = (enableHighAccuracy = true, watchPosition = true) 
       return;
     }
 
+    setState(prev => ({ ...prev, loading: true, error: null }));
+
     const options: PositionOptions = {
       enableHighAccuracy,
       timeout: 15000,
-      maximumAge: watchPosition ? 60000 : 300000, // 1 minute for watch, 5 minutes for single request
+      maximumAge: watchPosition ? 60000 : 300000,
     };
-    
-    console.log('Geolocation options:', options);
 
     const handleSuccess = (position: GeolocationPosition) => {
       console.log('=== GEOLOCATION SUCCESS ===');
-      console.log('Position received:', {
+      console.log('Position:', {
         latitude: position.coords.latitude,
         longitude: position.coords.longitude,
         accuracy: position.coords.accuracy,
@@ -65,23 +67,20 @@ export const useGeolocation = (enableHighAccuracy = true, watchPosition = true) 
 
     const handleError = (error: GeolocationPositionError) => {
       console.warn('=== GEOLOCATION ERROR ===');
-      console.warn('Geolocation error code:', error.code);
-      console.warn('Geolocation error message:', error.message);
+      console.warn('Error code:', error.code);
+      console.warn('Error message:', error.message);
       
       let errorMessage = 'Unable to retrieve your location.';
       
       switch (error.code) {
         case error.PERMISSION_DENIED:
           errorMessage = 'Location access denied. To enable location services, click the location icon in your browser\'s address bar or go to your browser settings and allow location access for this site.';
-          console.warn('User denied location permission');
           break;
         case error.POSITION_UNAVAILABLE:
           errorMessage = 'Location information is unavailable.';
-          console.warn('Location information unavailable');
           break;
         case error.TIMEOUT:
           errorMessage = 'Location request timed out.';
-          console.warn('Location request timeout');
           break;
       }
 
@@ -99,13 +98,12 @@ export const useGeolocation = (enableHighAccuracy = true, watchPosition = true) 
 
     let watchId: number | undefined;
     
-    // Watch position for real-time updates if enabled
     if (watchPosition) {
       console.log('Starting position watch...');
       watchId = navigator.geolocation.watchPosition(
         handleSuccess,
         handleError,
-        { ...options, maximumAge: 30000 } // More frequent updates for watching
+        { ...options, maximumAge: 30000 }
       );
       console.log('Position watch started with ID:', watchId);
     }
@@ -115,7 +113,6 @@ export const useGeolocation = (enableHighAccuracy = true, watchPosition = true) 
         console.log('Clearing position watch:', watchId);
         navigator.geolocation.clearWatch(watchId);
       }
-      console.log('=== GEOLOCATION DEBUG END ===');
     };
   }, [enableHighAccuracy, watchPosition]);
 
@@ -126,6 +123,15 @@ export const useGeolocation = (enableHighAccuracy = true, watchPosition = true) 
       loading: true, 
       error: null 
     }));
+    
+    if (!navigator.geolocation) {
+      setState(prev => ({
+        ...prev,
+        loading: false,
+        error: 'Geolocation is not supported by this browser.',
+      }));
+      return;
+    }
     
     navigator.geolocation.getCurrentPosition(
       (position) => {
@@ -147,10 +153,24 @@ export const useGeolocation = (enableHighAccuracy = true, watchPosition = true) 
       },
       (error) => {
         console.error('Manual refresh failed:', error);
+        let errorMessage = 'Failed to refresh location.';
+        
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            errorMessage = 'Location access denied. Please enable location services.';
+            break;
+          case error.POSITION_UNAVAILABLE:
+            errorMessage = 'Location information is unavailable.';
+            break;
+          case error.TIMEOUT:
+            errorMessage = 'Location request timed out.';
+            break;
+        }
+        
         setState(prev => ({
           ...prev,
           loading: false,
-          error: 'Failed to refresh location.',
+          error: errorMessage,
         }));
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
@@ -165,8 +185,6 @@ export const useGeolocation = (enableHighAccuracy = true, watchPosition = true) 
   const getDistanceFromLocation = (targetLat: number, targetLng: number): number | null => {
     if (!state.location) return null;
     
-    console.log('Calculating distance from current location to:', { targetLat, targetLng });
-    
     const R = 6371; // Earth's radius in kilometers
     const dLat = (targetLat - state.location.latitude) * Math.PI / 180;
     const dLng = (targetLng - state.location.longitude) * Math.PI / 180;
@@ -177,9 +195,9 @@ export const useGeolocation = (enableHighAccuracy = true, watchPosition = true) 
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     const distance = R * c;
     
-    console.log('Calculated distance:', distance, 'km');
     return distance;
   };
+
   return {
     ...state,
     refreshLocation,
