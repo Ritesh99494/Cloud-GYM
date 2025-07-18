@@ -26,6 +26,8 @@ export const GoogleMap: React.FC<GoogleMapProps> = ({
   const [gymMarkers, setGymMarkers] = useState<google.maps.Marker[]>([]);
   const [infoWindows, setInfoWindows] = useState<google.maps.InfoWindow[]>([]);
 
+  const [isComponentMounted, setIsComponentMounted] = useState(false);
+
   // Helper function to convert Location to LatLngLiteral
   const locationToLatLng = (location: Location): google.maps.LatLngLiteral => ({
     lat: location.latitude,
@@ -38,10 +40,21 @@ export const GoogleMap: React.FC<GoogleMapProps> = ({
     lng: gym.longitude
   });
 
+  // Track component mount status
+  useEffect(() => {
+    setIsComponentMounted(true);
+    return () => setIsComponentMounted(false);
+  }, []);
+
   // Initialize Google Maps
   useEffect(() => {
+    if (!isComponentMounted) return;
+
     const initMap = async () => {
       console.log('=== GOOGLE MAPS INITIALIZATION START ===');
+      
+      // Wait for DOM to be ready
+      await new Promise(resolve => setTimeout(resolve, 100));
       
       const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
       
@@ -54,6 +67,13 @@ export const GoogleMap: React.FC<GoogleMapProps> = ({
 
       if (!mapRef.current) {
         console.error('Map container not found');
+        // Retry after a delay
+        setTimeout(() => {
+          if (mapRef.current && isComponentMounted) {
+            console.log('Retrying map initialization...');
+            initMap();
+          }
+        }, 500);
         setError('Map container not available');
         setLoading(false);
         return;
@@ -61,16 +81,36 @@ export const GoogleMap: React.FC<GoogleMapProps> = ({
 
       try {
         console.log('Loading Google Maps API...');
-        const loader = new Loader({
-          apiKey,
-          version: 'weekly',
-          libraries: ['places', 'geometry']
-        });
 
-        await loader.load();
-        console.log('Google Maps API loaded successfully');
+        // Check if Google Maps is already loaded
+        if (window.google && window.google.maps) {
+          console.log('Google Maps API already loaded');
+          createMapInstance();
+        } else {
+          const loader = new Loader({
+            apiKey,
+            version: 'weekly',
+            libraries: ['places', 'geometry']
+          });
 
-        // Convert userLocation to LatLngLiteral or use default
+          await loader.load();
+          console.log('Google Maps API loaded successfully');
+          createMapInstance();
+        }
+      } catch (err) {
+        console.error('Google Maps loading error:', err);
+        setError('Failed to load Google Maps. Please check your API key and internet connection.');
+        setLoading(false);
+      }
+    };
+
+    const createMapInstance = () => {
+      if (!mapRef.current || !isComponentMounted) {
+        console.error('Map container not available or component unmounted');
+        return;
+      }
+
+      try {
         const defaultCenter: google.maps.LatLngLiteral = { lat: 40.7128, lng: -74.0060 }; // NYC
         const mapCenter = userLocation ? locationToLatLng(userLocation) : defaultCenter;
         
@@ -99,16 +139,16 @@ export const GoogleMap: React.FC<GoogleMapProps> = ({
         console.log('Map created successfully');
         setMap(mapInstance);
         setError(null);
-      } catch (err) {
-        console.error('Google Maps loading error:', err);
-        setError('Failed to load Google Maps. Please check your API key and internet connection.');
-      } finally {
         setLoading(false);
+      } catch (error) {
+        console.error('Error creating map instance:', error);
+        setError('Failed to create map instance');
+      } finally {
       }
     };
 
     initMap();
-  }, []);
+  }, [isComponentMounted]);
 
   // Update user location marker
   useEffect(() => {
@@ -378,7 +418,10 @@ export const GoogleMap: React.FC<GoogleMapProps> = ({
 
   return (
     <div className={`${className} rounded-xl overflow-hidden shadow-lg border border-gray-200 relative`}>
-      <div ref={mapRef} className="w-full h-full" />
+      <div 
+        ref={mapRef} 
+        className="w-full h-full" 
+        style={{ minHeight: '300px' }} />
       
       {/* Map Controls Overlay */}
       <div className="absolute top-4 right-4 bg-white rounded-lg shadow-md p-2">

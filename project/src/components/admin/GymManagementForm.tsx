@@ -61,13 +61,18 @@ export const GymManagementForm: React.FC = () => {
   const [marker, setMarker] = useState<google.maps.Marker | null>(null);
   const [mapLoading, setMapLoading] = useState(true);
   const [mapError, setMapError] = useState<string | null>(null);
+  const [isMapScriptLoaded, setIsMapScriptLoaded] = useState(false);
   
   const mapRef = useRef<HTMLDivElement>(null);
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
   const addressInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    initializeMap();
+    // Add a small delay to ensure DOM is fully rendered
+    const timer = setTimeout(() => {
+      initializeMap();
+    }, 100);
+    return () => clearTimeout(timer);
   }, []);
 
   const initializeMap = async () => {
@@ -75,6 +80,12 @@ export const GymManagementForm: React.FC = () => {
     
     if (!mapRef.current) {
       console.error('Map container not found');
+      // Retry after a short delay if container not found
+      setTimeout(() => {
+        if (mapRef.current) {
+          initializeMap();
+        }
+      }, 500);
       setMapError('Map container not available');
       setMapLoading(false);
       return;
@@ -90,24 +101,44 @@ export const GymManagementForm: React.FC = () => {
     }
 
     try {
-      // Load Google Maps API
-      const script = document.createElement('script');
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
-      script.async = true;
-      script.defer = true;
-      
-      script.onload = () => {
-        console.log('Google Maps API loaded for admin');
+      // Check if Google Maps API is already loaded
+      if (window.google && window.google.maps) {
+        console.log('Google Maps API already loaded');
+        setIsMapScriptLoaded(true);
         initializeMapInstance();
-      };
-      
-      script.onerror = () => {
-        console.error('Failed to load Google Maps API');
-        setMapError('Failed to load Google Maps API. Please check your API key.');
-        setMapLoading(false);
-      };
-      
-      document.head.appendChild(script);
+      } else {
+        // Check if script is already being loaded
+        const existingScript = document.querySelector(`script[src*="maps.googleapis.com"]`);
+        if (existingScript) {
+          console.log('Google Maps API script already exists, waiting for load...');
+          existingScript.addEventListener('load', () => {
+            setIsMapScriptLoaded(true);
+            initializeMapInstance();
+          });
+        } else {
+          // Load Google Maps API
+          console.log('Loading Google Maps API script...');
+          const script = document.createElement('script');
+          script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=initGoogleMaps`;
+          script.async = true;
+          script.defer = true;
+          
+          // Create global callback
+          (window as any).initGoogleMaps = () => {
+            console.log('Google Maps API loaded via callback');
+            setIsMapScriptLoaded(true);
+            initializeMapInstance();
+          };
+          
+          script.onerror = () => {
+            console.error('Failed to load Google Maps API');
+            setMapError('Failed to load Google Maps API. Please check your API key.');
+            setMapLoading(false);
+          };
+          
+          document.head.appendChild(script);
+        }
+      }
     } catch (error) {
       console.error('Error loading Google Maps:', error);
       setMapError('Error loading Google Maps API');
@@ -116,6 +147,13 @@ export const GymManagementForm: React.FC = () => {
   };
 
   const initializeMapInstance = () => {
+    if (!mapRef.current) {
+      console.error('Map container not available during initialization');
+      setMapError('Map container not available');
+      setMapLoading(false);
+      return;
+    }
+
     try {
       const mapInstance = new google.maps.Map(mapRef.current!, {
         center: { lat: 40.7128, lng: -74.0060 }, // Default to NYC
@@ -487,7 +525,7 @@ export const GymManagementForm: React.FC = () => {
           {/* Map */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Location on Map *
+              Location on Map * {isMapScriptLoaded && <span className="text-green-600 text-xs">(Map Ready)</span>}
             </label>
             <div className="w-full h-64 rounded-lg border border-gray-300 overflow-hidden">
               {mapLoading ? (
@@ -505,7 +543,7 @@ export const GymManagementForm: React.FC = () => {
                   </div>
                 </div>
               ) : (
-                <div ref={mapRef} className="w-full h-full"></div>
+                <div ref={mapRef} className="w-full h-full" style={{ minHeight: '256px' }}></div>
               )}
             </div>
             <p className="mt-2 text-sm text-gray-600">
