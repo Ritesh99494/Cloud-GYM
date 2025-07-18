@@ -6,7 +6,7 @@ import { ProtectedRoute } from './components/layout/ProtectedRoute';
 import { HomePage } from './components/pages/HomePage';
 import { AboutPage } from './components/pages/AboutPage';
 import { GymFinderPage } from './components/pages/GymFinderPage';
-import GymManagementForm from './components/admin/GymManagementForm';
+import {GymManagementForm} from './components/admin/GymManagementForm';
 
 import { useGeolocation } from './hooks/useGeolocation';
 
