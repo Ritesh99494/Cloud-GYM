@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 
 class ApiService {
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
@@ -19,12 +19,12 @@ class ApiService {
     };
 
     console.log('Final request config:', { 
-      url: `${API_BASE_URL}${endpoint}`,
+      url: `${API_BASE_URL}/api${endpoint}`,
       method: config.method || 'GET',
       headers: config.headers
     });
 
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
+    const response = await fetch(`${API_BASE_URL}/api${endpoint}`, config);
     
     console.log('Response status:', response.status);
     console.log('Response ok:', response.ok);
