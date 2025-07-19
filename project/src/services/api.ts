@@ -19,12 +19,12 @@ class ApiService {
     };
 
     console.log('Final request config:', { 
-      url: `${API_BASE_URL}/api${endpoint}`,
+      url: `${API_BASE_URL}${endpoint}`,
       method: config.method || 'GET',
       headers: config.headers
     });
 
-    const response = await fetch(`${API_BASE_URL}/api${endpoint}`, config);
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
     
     console.log('Response status:', response.status);
     console.log('Response ok:', response.ok);
