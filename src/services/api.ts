@@ -30,9 +30,16 @@ class ApiService {
 
   // Auth endpoints
   async login(email: string, password: string) {
-    console.log('API: Login request for email:', email);
-    return this.request('/api/auth/login', {
-      method: 'POST',
+      let errorMessage = `HTTP error! status: ${response.status}`;
+      try {
+        const errorData = await response.json();
+        console.error('API Error Response:', errorData);
+        errorMessage = errorData.message || errorMessage;
+      } catch (e) {
+        const errorText = await response.text();
+        console.error('API Error Response (text):', errorText);
+      }
+      throw new Error(errorMessage);
       body: JSON.stringify({ email, password }),
     });
   }
