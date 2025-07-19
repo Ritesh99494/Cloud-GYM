@@ -140,28 +140,29 @@ public class GymController {
     @PostMapping
     public ResponseEntity<GymDTO> createGym(@RequestBody GymDTO gymDTO) {
         logger.info("=== CREATE GYM DEBUG START ===");
-        logger.info("Creating gym: {}", gymDTO.getName());
+        logger.info("Creating gym: {}", gymDTO != null ? gymDTO.getName() : "null");
+        logger.info("Request body: {}", gymDTO);
         
         try {
             // Validate required fields
             if (gymDTO.getName() == null || gymDTO.getName().trim().isEmpty()) {
                 logger.error("Gym name is required");
-                return ResponseEntity.badRequest().build();
+                return ResponseEntity.badRequest().body(null);
             }
             
             if (gymDTO.getAddress() == null || gymDTO.getAddress().trim().isEmpty()) {
                 logger.error("Gym address is required");
-                return ResponseEntity.badRequest().build();
+                return ResponseEntity.badRequest().body(null);
             }
             
             if (gymDTO.getLatitude() == null || gymDTO.getLongitude() == null) {
                 logger.error("Gym coordinates are required");
-                return ResponseEntity.badRequest().build();
+                return ResponseEntity.badRequest().body(null);
             }
             
             if (gymDTO.getCapacity() == null || gymDTO.getCapacity() <= 0) {
                 logger.error("Valid gym capacity is required");
-                return ResponseEntity.badRequest().build();
+                return ResponseEntity.badRequest().body(null);
             }
             
             logger.debug("Gym validation passed, creating gym");
@@ -169,12 +170,12 @@ public class GymController {
             GymDTO createdGym = gymService.createGym(gymDTO);
             logger.info("Gym created successfully with ID: {}", createdGym.getId());
             logger.info("=== CREATE GYM DEBUG END - SUCCESS ===");
-            return ResponseEntity.ok(createdGym);
+            return ResponseEntity.status(201).body(createdGym);
             
         } catch (Exception e) {
             logger.error("=== CREATE GYM DEBUG END - ERROR ===");
             logger.error("Error creating gym: ", e);
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.status(500).body(null);
         }
     }
 

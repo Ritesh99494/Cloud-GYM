@@ -284,7 +284,7 @@ export const GymManagementForm: React.FC = () => {
     setSubmitMessage(null);
 
     try {
-      const response = await fetch('/api/gyms', {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}/api/gyms`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
