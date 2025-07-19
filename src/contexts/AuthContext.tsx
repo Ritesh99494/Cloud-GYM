@@ -16,10 +16,10 @@ interface AuthContextType {
         setUser(response.user);
         setToken(response.token);
         localStorage.setItem('authToken', response.token);
+        console.log('Login successful');
       } else {
         throw new Error(response.message || 'Login failed');
       }
-      console.log('Login successful');
     } catch (error) {
       console.error('Login failed:', error);
       throw error;
