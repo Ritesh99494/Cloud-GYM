@@ -93,21 +93,21 @@ export const GymCard: React.FC<GymCardProps> = ({
         {/* Amenities */}
         <div className="mb-4">
           <div className="flex flex-wrap gap-2">
-            {gym.amenities.slice(0, 4).map((amenity, index) => (
-              <div
-                key={index}
-                className="flex items-center space-x-1 bg-gray-100 px-2 py-1 rounded-full text-xs text-gray-700"
-              >
-                {getAmenityIcon(amenity)}
-                <span>{amenity}</span>
-              </div>
-            ))}
-            {gym.amenities.length > 4 && (
-              <div className="bg-gray-100 px-2 py-1 rounded-full text-xs text-gray-700">
-                +{gym.amenities.length - 4} more
-              </div>
-            )}
-          </div>
+  {(gym.amenities ?? []).slice(0, 4).map((amenity, index) => (
+    <div
+      key={index}
+      className="flex items-center space-x-1 bg-gray-100 px-2 py-1 rounded-full text-xs text-gray-700"
+    >
+      {getAmenityIcon(amenity)}
+      <span>{amenity}</span>
+    </div>
+  ))}
+  {(gym.amenities ?? []).length > 4 && (
+    <div className="bg-gray-100 px-2 py-1 rounded-full text-xs text-gray-700">
+      +{(gym.amenities ?? []).length - 4} more
+    </div>
+  )}
+</div>
         </div>
 
         {/* Operating Hours */}
