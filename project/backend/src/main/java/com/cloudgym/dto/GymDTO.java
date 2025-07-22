@@ -3,6 +3,12 @@ package com.cloudgym.dto;
 import com.cloudgym.entity.Gym;
 import java.util.List;
 import java.util.Map;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class GymDTO {
     private Long id;
@@ -22,9 +28,9 @@ public class GymDTO {
     private String description;
     private ContactInfo contactInfo;
 
-    // Constructors
     public GymDTO() {}
 
+    // Constructor for mapping from Gym entity
     public GymDTO(Gym gym) {
         this.id = gym.getId();
         this.name = gym.getName();
@@ -41,6 +47,78 @@ public class GymDTO {
         this.priceRange = gym.getPriceRange();
         this.description = gym.getDescription();
         this.contactInfo = new ContactInfo(gym.getContactPhone(), gym.getContactEmail());
+    }
+
+    // Constructor for mapping from native query result
+    public GymDTO(Object[] result) {
+        ObjectMapper mapper = new ObjectMapper();
+        this.id = result[0] != null ? ((Number) result[0]).longValue() : null;
+        this.name = (String) result[1];
+        this.address = (String) result[2];
+        this.latitude = result[3] != null ? ((Number) result[3]).doubleValue() : null;
+        this.longitude = result[4] != null ? ((Number) result[4]).doubleValue() : null;
+        this.rating = result[5] != null ? ((Number) result[5]).doubleValue() : null;
+        this.reviewCount = result[6] != null ? ((Number) result[6]).intValue() : null;
+
+        // Parse amenities (assume comma-separated string or JSON array)
+        // In GymDTO(Object[] result)
+if (result[9] instanceof String) {
+    String opHoursStr = (String) result[9];
+    Map<String, String> opHoursMap = new HashMap<>();
+    if (!opHoursStr.isEmpty()) {
+        String[] pairs = opHoursStr.split(",");
+        for (String pair : pairs) {
+            String[] kv = pair.split(":");
+            if (kv.length == 2) {
+                opHoursMap.put(kv[0], kv[1]);
+            }
+        }
+    }
+    this.operatingHours = opHoursMap;
+} else {
+    this.operatingHours = Collections.emptyMap();
+}
+
+        // Parse images (assume comma-separated string or JSON array)
+        if (result[8] instanceof String) {
+            String imagesStr = (String) result[8];
+            if (imagesStr.startsWith("[") && imagesStr.endsWith("]")) {
+                try {
+                    this.images = mapper.readValue(imagesStr, new TypeReference<List<String>>() {});
+                } catch (Exception e) {
+                    this.images = Collections.emptyList();
+                }
+            } else if (!imagesStr.isEmpty()) {
+                this.images = Arrays.asList(imagesStr.split(","));
+            } else {
+                this.images = Collections.emptyList();
+            }
+        } else {
+            this.images = Collections.emptyList();
+        }
+
+        // Parse operatingHours (assume JSON string)
+        if (result[9] instanceof String) {
+            String opHoursStr = (String) result[9];
+            try {
+                this.operatingHours = mapper.readValue(opHoursStr, new TypeReference<Map<String, String>>() {});
+            } catch (Exception e) {
+                this.operatingHours = Collections.emptyMap();
+            }
+        } else {
+            this.operatingHours = Collections.emptyMap();
+        }
+
+        this.capacity = result[10] != null ? ((Number) result[10]).intValue() : null;
+        this.currentOccupancy = result[11] != null ? ((Number) result[11]).intValue() : null;
+        this.priceRange = (String) result[12];
+        this.description = (String) result[13];
+
+        String phone = result[14] instanceof String ? (String) result[14] : null;
+        String email = result[15] instanceof String ? (String) result[15] : null;
+        this.contactInfo = new ContactInfo(phone, email);
+
+        this.distance = result[16] != null ? ((Number) result[16]).doubleValue() : null;
     }
 
     // Getters and Setters
@@ -69,7 +147,7 @@ public class GymDTO {
     public void setReviewCount(Integer reviewCount) { this.reviewCount = reviewCount; }
 
     public List<String> getAmenities() { return amenities; }
-    public void setAmenities(List<String> amenities) { this.amenities = amenities; }
+    public void setAmenities(List<String> result) { this.amenities = result; }
 
     public List<String> getImages() { return images; }
     public void setImages(List<String> images) { this.images = images; }

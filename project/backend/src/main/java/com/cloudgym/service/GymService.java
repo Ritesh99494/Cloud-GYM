@@ -7,7 +7,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Optional;
-import java.math.BigDecimal;
 
 @Service
 public class GymService {
@@ -17,16 +16,14 @@ public class GymService {
 
     public List<GymDTO> getNearbyGyms(Double latitude, Double longitude, Double radiusInKm) {
         List<Object[]> results = gymRepository.findNearbyGyms(latitude, longitude, radiusInKm);
-        
-        return results.stream().map(result -> {
-            Gym gym = (Gym) result[0];
-            BigDecimal distance = (BigDecimal) result[1];
-            
-            GymDTO gymDTO = new GymDTO(gym);
-            gymDTO.setDistance(distance.doubleValue());
-            return gymDTO;
-        }).toList();
+
+        // Use the GymDTO(Object[] result) constructor to handle all parsing and mapping
+        return results.stream()
+            .map(GymDTO::new)
+            .toList();
     }
+
+    // ...other methods unchanged...
 
     public Optional<GymDTO> getGymById(Long id) {
         return gymRepository.findById(id).map(GymDTO::new);
