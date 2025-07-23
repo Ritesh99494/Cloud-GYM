@@ -136,7 +136,7 @@ export const GymMap: React.FC<GymMapProps> = ({
         selectedGym={selectedGym}
         onGymSelect={onGymSelect}
         className="w-full"
-        
+        minHeight="400px"
         height="400px"
       />
          
