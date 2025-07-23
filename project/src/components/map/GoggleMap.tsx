@@ -9,6 +9,8 @@ interface GoogleMapProps {
   selectedGym?: Gym | null;
   onGymSelect?: (gym: Gym) => void;
   className?: string;
+  height?: string; 
+  minHeight?: string; 
 }
 
 export const GoogleMap: React.FC<GoogleMapProps> = ({
@@ -16,7 +18,9 @@ export const GoogleMap: React.FC<GoogleMapProps> = ({
   userLocation,
   selectedGym,
   onGymSelect,
-  className = "h-96"
+  className = "h-96",
+  height = "400px",       
+  minHeight = "300px"  
 }) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<google.maps.Map | null>(null);
