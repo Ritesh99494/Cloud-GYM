@@ -135,9 +135,11 @@ export const GymMap: React.FC<GymMapProps> = ({
         userLocation={userLocation}
         selectedGym={selectedGym}
         onGymSelect={onGymSelect}
-        className="h-96"
+        className="w-full"
+        
+        height="400px"
       />
-
+         
       {/* Map Footer */}
       <div className="p-4 border-t border-gray-200 bg-gray-50">
         <div className="flex items-center justify-between text-sm text-gray-600">

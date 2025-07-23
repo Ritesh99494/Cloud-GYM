@@ -47,108 +47,68 @@ export const GoogleMap: React.FC<GoogleMapProps> = ({
   }, []);
 
   // Initialize Google Maps
-  useEffect(() => {
-    if (!isComponentMounted) return;
+  // ...existing code...
 
-    const initMap = async () => {
-      console.log('=== GOOGLE MAPS INITIALIZATION START ===');
-      
-      // Wait for DOM to be ready
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-      
-      if (!apiKey) {
-        console.error('Google Maps API key not found');
-        setError('Google Maps API key not found. Please add VITE_GOOGLE_MAPS_API_KEY to your .env.local file.');
-        setLoading(false);
-        return;
-      }
+useEffect(() => {
+  if (!isComponentMounted || !mapRef.current) return;
 
-      if (!mapRef.current) {
-        console.error('Map container not found');
-        // Retry after a delay
-        setTimeout(() => {
-          if (mapRef.current && isComponentMounted) {
-            console.log('Retrying map initialization...');
-            initMap();
-          }
-        }, 500);
-        setError('Map container not available');
-        setLoading(false);
-        return;
-      }
+  const initMap = async () => {
+    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
-      try {
-        console.log('Loading Google Maps API...');
+    if (!apiKey) {
+      setError('Google Maps API key not found. Please add VITE_GOOGLE_MAPS_API_KEY to your .env.local file.');
+      setLoading(false);
+      return;
+    }
 
-        // Check if Google Maps is already loaded
-        if (window.google && window.google.maps) {
-          console.log('Google Maps API already loaded');
-          createMapInstance();
-        } else {
-          const loader = new Loader({
-            apiKey,
-            version: 'weekly',
-            libraries: ['places', 'geometry']
-          });
-
-          await loader.load();
-          console.log('Google Maps API loaded successfully');
-          createMapInstance();
-        }
-      } catch (err) {
-        console.error('Google Maps loading error:', err);
-        setError('Failed to load Google Maps. Please check your API key and internet connection.');
-        setLoading(false);
-      }
-    };
-
-    const createMapInstance = () => {
-      if (!mapRef.current || !isComponentMounted) {
-        console.error('Map container not available or component unmounted');
-        return;
-      }
-
-      try {
-        const defaultCenter: google.maps.LatLngLiteral = { lat: 40.7128, lng: -74.0060 }; // NYC
-        const mapCenter = userLocation ? locationToLatLng(userLocation) : defaultCenter;
-        
-        console.log('Creating map with center:', mapCenter);
-
-        const mapInstance = new google.maps.Map(mapRef.current, {
-          center: mapCenter,
-          zoom: userLocation ? 13 : 10,
-          styles: [
-            {
-              featureType: 'poi.business',
-              stylers: [{ visibility: 'off' }]
-            },
-            {
-              featureType: 'poi.medical',
-              stylers: [{ visibility: 'off' }]
-            }
-          ],
-          mapTypeControl: false,
-          streetViewControl: false,
-          fullscreenControl: true,
-          zoomControl: true,
-          gestureHandling: 'cooperative',
+    try {
+      if (window.google && window.google.maps) {
+        createMapInstance();
+      } else {
+        const loader = new Loader({
+          apiKey,
+          version: 'weekly',
+          libraries: ['places', 'geometry']
         });
 
-        console.log('Map created successfully');
-        setMap(mapInstance);
-        setError(null);
-        setLoading(false);
-      } catch (error) {
-        console.error('Error creating map instance:', error);
-        setError('Failed to create map instance');
-      } finally {
+        await loader.load();
+        createMapInstance();
       }
-    };
+    } catch (err) {
+      setError('Failed to load Google Maps. Please check your API key and internet connection.');
+      setLoading(false);
+    }
+  };
 
-    initMap();
-  }, [isComponentMounted]);
+  const createMapInstance = () => {
+    if (!mapRef.current) return;
+
+    const defaultCenter: google.maps.LatLngLiteral = { lat: 40.7128, lng: -74.0060 }; // NYC
+    const mapCenter = userLocation ? locationToLatLng(userLocation) : defaultCenter;
+
+    const mapInstance = new google.maps.Map(mapRef.current, {
+      center: mapCenter,
+      zoom: userLocation ? 13 : 10,
+      styles: [
+        { featureType: 'poi.business', stylers: [{ visibility: 'off' }] },
+        { featureType: 'poi.medical', stylers: [{ visibility: 'off' }] }
+      ],
+      mapTypeControl: false,
+      streetViewControl: false,
+      fullscreenControl: true,
+      zoomControl: true,
+      gestureHandling: 'cooperative',
+    });
+
+    setMap(mapInstance);
+    setError(null);
+    setLoading(false);
+  };
+
+  initMap();
+}, [isComponentMounted, mapRef.current, userLocation]);
+
+// ...existing code...
 
   // Update user location marker
   useEffect(() => {
