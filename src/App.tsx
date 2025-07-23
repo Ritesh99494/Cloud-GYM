@@ -19,3 +19,4 @@
              <Route 
                path="/admin/gyms" 
                element={
+               }
