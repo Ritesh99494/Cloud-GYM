@@ -18,7 +18,7 @@ export const GoogleMap: React.FC<GoogleMapProps> = ({
   userLocation,
   selectedGym,
   onGymSelect,
-  className = "h-96",
+  className = "w-full h-full",
   height = "400px",       
   minHeight = "300px"  
 }) => {
@@ -273,13 +273,13 @@ useEffect(() => {
             </div>
             
             <div class="mt-3 pt-3 border-t border-gray-200">
-              <div class="flex flex-wrap gap-1">
-                ${gym.amenities.slice(0, 3).map(amenity => 
-                  `<span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">${amenity}</span>`
-                ).join('')}
-                ${gym.amenities.length > 3 ? `<span class="text-xs text-gray-500">+${gym.amenities.length - 3} more</span>` : ''}
-              </div>
+            <div class="flex flex-wrap gap-1">
+            ${(gym.amenities ?? []).slice(0, 3).map(amenity => 
+            `<span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">${amenity}</span>`
+            ).join('')}
+            ${(gym.amenities ?? []).length > 3 ? `<span class="text-xs text-gray-500">+${(gym.amenities ?? []).length - 3} more</span>` : ''}
             </div>
+           </div>
           </div>
         `
       });
@@ -335,7 +335,20 @@ useEffect(() => {
       if (gym?.id === selectedGym.id) {
         marker.setZIndex(999);
         // Open info window for selected gym
-        const infoWindow = infoWindows[index];
+        const infoWindow = new google.maps.InfoWindow({
+  content: `
+    ...
+    <div class="mt-3 pt-3 border-t border-gray-200">
+      <div class="flex flex-wrap gap-1">
+        ${gym.amenities.slice(0, 3).map(amenity => 
+          `<span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">${amenity}</span>`
+        ).join('')}
+        ${gym.amenities.length > 3 ? `<span class="text-xs text-gray-500">+${gym.amenities.length - 3} more</span>` : ''}
+      </div>
+    </div>
+    ...
+  `
+});
         if (infoWindow) {
           infoWindows.forEach(iw => iw.close());
           infoWindow.open(map, marker);
@@ -352,15 +365,40 @@ useEffect(() => {
   }, [selectedGym, gymMarkers, gyms, map, infoWindows]);
 
   if (loading) {
-    return (
-      <div className={`${className} bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl flex items-center justify-center border border-gray-200`}>
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 text-blue-600 animate-spin mx-auto mb-3" />
-          <p className="text-gray-700 font-medium">Loading Google Maps...</p>
-          <p className="text-gray-500 text-sm mt-1">Please wait while we initialize the map</p>
+    // ...existing code...
+
+  return (
+    <div className={`${className} rounded-xl overflow-hidden shadow-lg border border-gray-200 relative`}>
+      <div
+        ref={mapRef}
+        className={className}
+        style={{ minHeight, height }}
+      />
+      {/* ...rest of your overlay code... */}
+      {/* Map Controls Overlay */}
+      <div className="absolute top-4 right-4 bg-white rounded-lg shadow-md p-2">
+        <div className="flex items-center space-x-2 text-xs text-gray-600">
+          <div className="flex items-center space-x-1">
+            <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+            <span>You</span>
+          </div>
+          <div className="flex items-center space-x-1">
+            <div className="w-3 h-3 bg-red-600 rounded-full"></div>
+            <span>Gyms</span>
+          </div>
         </div>
       </div>
-    );
+      {/* Gym Count Badge */}
+      {gyms.length > 0 && (
+        <div className="absolute bottom-4 left-4 bg-white rounded-full shadow-md px-3 py-1">
+          <span className="text-sm font-medium text-gray-700">
+            {gyms.length} gym{gyms.length !== 1 ? 's' : ''} found
+          </span>
+        </div>
+      )}
+    </div>
+  );
+// ...existing code...
   }
 
   if (error) {
