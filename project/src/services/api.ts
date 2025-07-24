@@ -1,6 +1,9 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 
 class ApiService {
+  get<T>(arg0: string) {
+      throw new Error('Method not implemented.');
+  }
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     console.log('=== API REQUEST DEBUG ===');
     console.log('Endpoint:', endpoint);
@@ -138,8 +141,8 @@ class ApiService {
   }
 
   async getUserBookings() {
-    return this.request('/bookings/my-bookings');
-  }
+  return this.request('/bookings/my-bookings');
+}
 
   async cancelBooking(bookingId: string) {
     return this.request(`/bookings/${bookingId}/cancel`, {
@@ -153,6 +156,24 @@ class ApiService {
       body: JSON.stringify({ qrCode }),
     });
   }
+  async initiateSubscriptionPayment(planType: string) {
+  return this.request('/payments/subscription/initiate', {
+    method: 'POST',
+    body: JSON.stringify({ type: planType }),
+  });
+}
+//for Subscription status
+async getActiveSubscription() {
+  return this.request('/subscriptions/active');
+}
+// for PaymentRedirect
+async paymentCallback(callbackData: any) {
+  return this.request('/payments/callback', {
+    method: 'POST',
+    body: JSON.stringify(callbackData),
+  });
+}
+//for booking history
 
   // AI Recommendations
   async getAIRecommendations(latitude: number, longitude: number, fitnessGoals: string[]) {

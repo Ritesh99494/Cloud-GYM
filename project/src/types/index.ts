@@ -78,3 +78,11 @@ export interface AIRecommendation {
   reasons: string[];
   matchedGoals: string[];
 }
+
+export interface SubscriptionPlan {
+  type: string;
+  name: string;
+  description: string;
+  price: number;
+  duration: string;
+}
