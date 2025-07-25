@@ -67,7 +67,7 @@ export const Header: React.FC<HeaderProps> = ({ location, onLocationRefresh }) =
                   <a href="/bookings" className="text-gray-700 hover:text-blue-600 font-medium transition-colors">
                     My Bookings
                   </a>
-                  <a href="/subscription" className="text-gray-700 hover:text-blue-600 font-medium transition-colors">
+                  <a href="/subscriptions" className="text-gray-700 hover:text-blue-600 font-medium transition-colors">
                     Subscription
                   </a>
                   {isAdmin && (
