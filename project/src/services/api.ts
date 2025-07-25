@@ -182,11 +182,10 @@ async paymentCallback(callbackData: any) {
       body: JSON.stringify({ latitude, longitude, fitnessGoals }),
     });
   }
-
-  // Subscription endpoints
-  async getSubscriptionPlans() {
-    return this.request('/subscriptions/plans');
-  }
+  // Subscription: Plan list
+async getSubscriptionPlans() {
+  return this.request('/subscriptions/plans');
+}
 
   async upgradeSubscription(planId: string) {
     return this.request('/subscriptions/upgrade', {
