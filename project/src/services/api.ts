@@ -156,21 +156,7 @@ class ApiService {
       body: JSON.stringify({ qrCode }),
     });
   }
-  async initiateSubscriptionPayment(planType: string) {
-  return this.request('/payments/subscription/initiate', {
-    method: 'POST',
-    body: JSON.stringify({ type: planType }),
-  });
-}
 
-// for PaymentRedirect
-async paymentCallback(callbackData: any) {
-  return this.request('/payments/callback', {
-    method: 'POST',
-    body: JSON.stringify(callbackData),
-  });
-}
-//for booking history
 
   // AI Recommendations
   async getAIRecommendations(latitude: number, longitude: number, fitnessGoals: string[]) {
@@ -192,6 +178,27 @@ async createSubscription(planType: string) {
   return this.request('/subscriptions/create', {
     method: 'POST',
     body: JSON.stringify({ type: planType }),
+  });
+}
+// Subscription: Cancel active subscription
+async cancelSubscription(subscriptionId: number) {
+  return this.request(`/subscriptions/${subscriptionId}/cancel`, {
+    method: 'PUT',
+  });
+}
+// Payment: Initiate subscription payment
+async initiateSubscriptionPayment(planType: string) {
+  return this.request('/payments/subscription/initiate', {
+    method: 'POST',
+    body: JSON.stringify({ type: planType }),
+  });
+}
+
+// Payment: Callback after payment
+async paymentCallback(callbackData: any) {
+  return this.request('/payments/callback', {
+    method: 'POST',
+    body: JSON.stringify(callbackData),
   });
 }
 
