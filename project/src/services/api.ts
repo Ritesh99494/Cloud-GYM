@@ -162,10 +162,7 @@ class ApiService {
     body: JSON.stringify({ type: planType }),
   });
 }
-//for Subscription status
-async getActiveSubscription() {
-  return this.request('/subscriptions/active');
-}
+
 // for PaymentRedirect
 async paymentCallback(callbackData: any) {
   return this.request('/payments/callback', {
@@ -185,6 +182,17 @@ async paymentCallback(callbackData: any) {
   // Subscription: Plan list
 async getSubscriptionPlans() {
   return this.request('/subscriptions/plans');
+}
+// Subscription: Check if user has active plan
+async getActiveSubscription() {
+  return this.request('/subscriptions/active');
+}
+// Subscription: Create new subscription (after payment)
+async createSubscription(planType: string) {
+  return this.request('/subscriptions/create', {
+    method: 'POST',
+    body: JSON.stringify({ type: planType }),
+  });
 }
 
   async upgradeSubscription(planId: string) {
