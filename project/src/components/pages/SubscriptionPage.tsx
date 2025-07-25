@@ -1,10 +1,11 @@
+
 import React, { useEffect, useState } from 'react';
 import { SubscriptionStatus } from '../subscription/SubscriptionStatus';
 import { SubscriptionPlans } from '../subscription/SubscriptionPlans';
 import { apiService } from '../../services/api';
-
+// ✅ Define Subscription type
 interface Subscription {
-  id: string;
+  id: number;
   type: string;
   status: string;
   startDate: string;
@@ -14,44 +15,63 @@ interface Subscription {
   daysRemaining: number;
 }
 
+// ✅ Define SubscriptionPlan type
+interface SubscriptionPlan {
+  type: string;
+  name: string;
+  price: number;
+  duration: string;
+}
+
 export const SubscriptionPage: React.FC = () => {
   const [subscription, setSubscription] = useState<Subscription | null>(null);
+  const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [loading, setLoading] = useState(true);
-  const [plans, setPlans] = useState([]);
 
   useEffect(() => {
-    fetchSubscription();
-    fetchPlans();
+    fetchData();
   }, []);
 
-  const fetchSubscription = async () => {
+  const fetchData = async () => {
     try {
-      const result = await apiService.getActiveSubscription();
-      setSubscription(result);
-    } catch (error: any) {
-      setSubscription(null); // No active plan
+      setLoading(true);
+
+      // Fetch active subscription
+      try {
+        const result = await apiService.getActiveSubscription() as Subscription;
+        setSubscription(result);
+      } catch (err) {
+        console.warn('No active subscription found.');
+        setSubscription(null); // If 404 or no plan, that's okay
+      }
+
+      // Fetch available plans
+      const response = await apiService.getSubscriptionPlans() as SubscriptionPlan[];
+      setPlans(response);
+    } catch (error) {
+      console.error('Error loading subscription data:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchPlans = async () => {
-    try {
-      const response = await apiService.getSubscriptionPlans();
-      setPlans(response);
-    } catch (err) {
-      console.error('Failed to load plans');
-    }
-  };
-
-  if (loading) return <div className="text-center p-6">Loading...</div>;
+  if (loading) {
+    return (
+      <div className="text-center py-12 text-gray-600 font-medium text-lg">
+        Loading your subscription...
+      </div>
+    );
+  }
 
   return (
-    <div className="max-w-4xl mx-auto p-4">
+    <div className="max-w-5xl mx-auto px-4 py-8">
       {subscription ? (
         <SubscriptionStatus />
       ) : (
-        <SubscriptionPlans plans={plans} />
+        <>
+          <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">Choose a Subscription Plan</h2>
+          <SubscriptionPlans plans={plans} />
+        </>
       )}
     </div>
   );

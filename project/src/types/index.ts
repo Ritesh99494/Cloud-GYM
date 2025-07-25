@@ -82,7 +82,7 @@ export interface AIRecommendation {
 export interface SubscriptionPlan {
   type: string;
   name: string;
-  description: string;
+  description?: string; // ⛔️ Optional now
   price: number;
   duration: string;
 }
